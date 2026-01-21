@@ -40,7 +40,7 @@
 
 1. **下载项目**
    ```bash
-   git clone https://github.com/your-repo/yixz-mcp-open.git
+   git clone https://github.com/NasWanke/yixz-mcp-open.git
    cd yixz-mcp-open
    ```
 
@@ -61,7 +61,7 @@
 
 1. **下载项目**
    ```bash
-   git clone https://github.com/your-repo/yixz-mcp-open.git
+   git clone https://github.com/NasWanke/yixz-mcp-open.git
    cd yixz-mcp-open
    ```
 
@@ -145,9 +145,9 @@
 2. **启动服务**
    ```bash
    # 克隆项目
-   git clone https://github.com/your-repo/yixz-mcp-open.git
+   git clone https://github.com/NasWanke/yixz-mcp-open.git
    cd yixz-mcp-open
-
+   
    # 构建并启动（后台运行）
    docker-compose up -d --build
    ```
@@ -156,7 +156,7 @@
    ```bash
    # 查看实时日志
    docker-compose logs -f
-
+   
    # 查看服务状态
    docker-compose ps
    ```
