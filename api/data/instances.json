@@ -1,0 +1,46 @@
+[
+  {
+    "name": "小爱",
+    "accessAddress": "wss://api.xiaozhi.me/mcp/?token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjcxMjgxMywiYWdlbnRJZCI6MTI1Nzk4NywiZW5kcG9pbnRJZCI6ImFnZW50XzEyNTc5ODciLCJwdXJwb3NlIjoibWNwLWVuZHBvaW50IiwiaWF0IjoxNzY4OTAwMzY0LCJleHAiOjE4MDA0NTc5NjR9.xYARI6puaakmOEp_vF2RVskBNJIl0MXvzpg5aNnuJRldkGJmx44uV7FhfDLmBlndoLnZ_8HFQ_pa0mjNEXLpSw",
+    "nodes": [
+      {
+        "id": "1768900426080",
+        "name": "deepwiki",
+        "type": "stdio",
+        "url": "",
+        "command": "npx",
+        "args": [
+          "-y",
+          "mcp-deepwiki@latest"
+        ],
+        "env": {},
+        "status": "connected",
+        "toolsCount": 1,
+        "resourcesCount": 0,
+        "promptsCount": 0,
+        "lastHeartbeat": "2026-01-20T09:15:26.017Z"
+      },
+      {
+        "id": "1768900562499",
+        "name": "howtocook",
+        "type": "stdio",
+        "url": "",
+        "command": "npx",
+        "args": [
+          "-y",
+          "howtocook-mcp"
+        ],
+        "env": {},
+        "toolsCount": 0,
+        "resourcesCount": 0,
+        "promptsCount": 0,
+        "status": "disconnected",
+        "lastHeartbeat": "-"
+      }
+    ],
+    "status": "running",
+    "id": "984b0a6e-e327-4f79-bc43-a928c2dd2865",
+    "createdAt": 1768900370139,
+    "updatedAt": 1768984889280
+  }
+]
