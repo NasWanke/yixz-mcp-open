@@ -1,6 +1,8 @@
 #!/bin/bash
 
-set -e
+# 稳健的启动脚本配置
+# 不使用 set -e，避免意外退出
+# 不使用 set -m，避免与某些终端兼容性问题
 
 # 颜色定义
 RED='\033[0;31m'
@@ -79,9 +81,8 @@ install_dependencies() {
         print_info "正在安装依赖（首次运行可能需要几分钟）..."
         echo ""
 
-        $PM install
-
-        if [ $? -ne 0 ]; then
+        # 执行安装并检查结果（兼容 set -m）
+        if ! $PM install; then
             echo ""
             print_error "依赖安装失败"
             echo ""
@@ -90,6 +91,7 @@ install_dependencies() {
             echo "2. Node.js 版本过低，请升级到 v18+"
             echo "3. 权限问题，请尝试使用 sudo（仅限必要时）"
             echo ""
+            read -p "按回车键退出..."
             exit 1
         fi
 
@@ -108,9 +110,8 @@ build_frontend() {
         print_info "正在构建前端资源..."
         echo ""
 
-        $PM run build
-
-        if [ $? -ne 0 ]; then
+        # 执行构建并检查结果（兼容 set -m）
+        if ! $PM run build; then
             echo ""
             print_error "前端构建失败"
             echo ""
@@ -118,6 +119,7 @@ build_frontend() {
             echo "1. TypeScript 编译错误，请检查代码"
             echo "2. 依赖未完全安装，请删除 node_modules 后重新运行"
             echo ""
+            read -p "按回车键退出..."
             exit 1
         fi
 
@@ -139,10 +141,16 @@ start_service() {
     echo -e "${CYAN}[停止服务]${NC} 按 Ctrl + C"
     echo ""
 
-    # 启动服务器（后台运行）
+    # 启动服务器（后台运行，使用 nohup 确保服务独立运行）
     print_info "正在后台启动服务..."
-    $PM start &
+
+    # 保存服务PID到文件，方便后续停止
+    PID_FILE=".service_pid"
+
+    # 使用 nohup 让服务完全独立运行，即使脚本退出也不影响
+    nohup $PM start > /dev/null 2>&1 &
     SERVER_PID=$!
+    echo $SERVER_PID > "$PID_FILE"
 
     # 等待服务就绪（最多30秒）
     print_info "等待服务启动..."
@@ -175,6 +183,11 @@ start_service() {
 
     echo ""
 
+    # 如果超时仍未就绪，给出警告但继续
+    if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
+        print_warn "服务可能尚未完全就绪，但继续执行..."
+    fi
+
     # 打开浏览器
     print_info "正在打开浏览器..."
     if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -191,16 +204,24 @@ start_service() {
 
     sleep 1
     echo ""
-    print_info "服务正在运行"
+    print_success "服务正在运行"
     echo ""
-    echo -e "${YELLOW}提示：按 Ctrl + C 停止服务，或直接关闭窗口（服务将继续在后台运行）${NC}"
+    echo -e "${CYAN}========================================${NC}"
+    echo -e "${GREEN}  服务已启动！${NC}"
+    echo -e "${CYAN}========================================${NC}"
     echo ""
-
-    # 等待后台服务
-    wait $SERVER_PID 2>/dev/null
-
+    echo -e "${CYAN}访问地址:${NC} ${SERVICE_URL}"
+    echo -e "${CYAN}服务 PID:${NC} ${SERVER_PID}"
+    echo -e "${CYAN}PID 文件:${NC} ${PID_FILE}"
     echo ""
-    print_info "服务已停止"
+    echo -e "${YELLOW}提示：${NC}"
+    echo -e "  1. 按 Ctrl + C 退出此脚本（服务将继续在后台运行）"
+    echo -e "  2. 或直接关闭终端窗口"
+    echo ""
+    echo -e "${YELLOW}停止后台服务的方法：${NC}"
+    echo -e "  ${CYAN}kill \$(cat .service_pid)${NC}  # 使用保存的 PID"
+    echo -e "  ${CYAN}pkill -f '${PM} start'${NC}     # 强制停止匹配的进程"
+    echo -e "  ${CYAN}lsof -ti:3001 | xargs kill${NC} # 通过端口停止"
     echo ""
 }
 
@@ -214,8 +235,22 @@ main() {
     start_service
 }
 
-# 捕获中断信号
-trap 'echo ""; print_info "已收到中断信号，正在退出..."; exit 0' INT
+# 捕获中断信号 - 优雅退出
+trap 'echo ""; print_info "已收到中断信号"; print_info "服务继续在后台运行（PID: $SERVER_PID）"; echo ""; exit 0' INT TERM
 
 # 执行主流程
 main
+
+# 启动完成后，等待用户输入（类似 Windows 版本的 pause）
+echo ""
+echo -e "${CYAN}按回车键退出...${NC}"
+
+# 使用更稳健的等待方式，兼容各种终端
+# 检查是否有交互式终端
+if [ -t 0 ]; then
+    # 交互式终端，等待输入
+    read
+else
+    # 非交互式（如双击 .command 文件），等待一段时间
+    sleep 5
+fi
