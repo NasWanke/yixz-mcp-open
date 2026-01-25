@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yixz-Mcp-Open</title>
+    <script type="module" crossorigin src="/assets/index-Zm6beVWj.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CyLo0wAP.css">
+  </head>
+  <body>
+    <div id="app"></div>
+  
+          <script>
+            (function() {
+              'use strict';
+
+              if (window.YixzBadgePlugin) return;
+
+              const css = `
+.yixz-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  box-sizing: border-box;
+  border-radius: 6px;
+  position: fixed;
+  padding: 8px 8px 8px 10px;
+  height: 28px;
+  width: 110px;
+  z-index: 9999;
+}
+
+.yixz-badge:hover.yixz-badge--light {
+  background-color: #EDEFF2;
+}
+
+.yixz-badge:hover.yixz-badge--dark {
+  background-color: #2A2D31;
+}
+
+.yixz-badge-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.yixz-badge-logo {
+  flex-shrink: 0;
+}
+
+.yixz-badge-share {
+  flex-shrink: 0;
+  color: rgba(78, 82, 87, 1);
+}
+
+.yixz-badge:hover.yixz-badge--light .yixz-badge-share {
+  color: rgba(38, 41, 44, 1);
+}
+
+.yixz-badge:hover.yixz-badge--dark .yixz-badge-share {
+  color: #D1D3DB;
+}
+
+.yixz-badge-cancel {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000000;
+}
+
+.yixz-badge:hover .yixz-badge-cancel {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .yixz-badge-cancel {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+}
+
+.yixz-badge--light {
+  background-color: rgba(255, 255, 255, 1);
+  color: #ffffff;
+  box-shadow: 0px 0px 0.5px 0px rgba(0, 0, 0, 0.12), 0px 1px 3px 0px rgba(0, 0, 0, 0.08), 0px 4px 8px 0px rgba(0, 0, 0, 0.12);
+}
+
+.yixz-badge--dark {
+  background-color: #000000;
+  color: #ffffff;
+  box-shadow: 0px 0px 0.5px 0px rgba(0, 0, 0, 0.12), 0px 1px 3px 0px rgba(0, 0, 0, 0.08), 0px 4px 8px 0px rgba(0, 0, 0, 0.12);
+}
+
+.yixz-badge--bottom-right { bottom: 20px; right: 20px; }
+.yixz-badge--bottom-left { bottom: 20px; left: 20px; }
+.yixz-badge--top-right { top: 20px; right: 20px; }
+.yixz-badge--top-left { top: 20px; left: 20px; }
+
+.yixz-badge-logo svg {
+  width: 18px;
+  height: 18px;
+}
+
+.yixz-badge-text {
+  font-size: 13px;
+  font-weight: 600;
+  color: #0A0A0A;
+  margin-left: 2px;
+  letter-spacing: 0.3px;
+}
+
+.yixz-badge--light .yixz-badge-text {
+  color: #0A0A0A;
+}
+
+.yixz-badge--dark .yixz-badge-text {
+  color: #F5F7FA;
+}
+`;
+              const yixzLogo = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="44 20 112 116">
+  <!-- Squircle Head -->
+  <rect
+    x="56"
+    y="44"
+    width="88"
+    height="88"
+    rx="26"
+    fill="#F5F7FA"
+  />
+
+  <!-- Soft antenna -->
+  <path
+    d="M100 44
+       C100 36, 97 33, 95 31
+       M100 44
+       C100 36, 103 33, 105 31"
+    stroke="#F5F7FA"
+    stroke-width="4.5"
+    stroke-linecap="round"
+    fill="none"
+  />
+
+  <!-- Inner abstract system -->
+  <circle cx="88" cy="86" r="6.2" fill="#0A0A0A"/>
+  <circle cx="112" cy="80" r="6.2" fill="#0A0A0A"/>
+  <circle cx="100" cy="100" r="3.6" fill="#0A0A0A"/>
+
+  <!-- Flow curve -->
+  <path
+    d="M92 104
+       C97 110, 104 112, 110 116"
+    stroke="#1A1A1A"
+    stroke-width="4"
+    stroke-linecap="round"
+    fill="none"
+  />
+</svg>`;
+              const cancelDark = `<svg width="16" height="15" viewBox="0 0 16 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_5993_243)">
+<path d="M0.437012 7.5C0.437012 3.35786 3.79488 0 7.93701 0C12.0791 0 15.437 3.35786 15.437 7.5C15.437 11.6421 12.0791 15 7.93701 15C3.79488 15 0.437012 11.6421 0.437012 7.5Z" fill="#EDEFF2"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M7.93698 1.34036C11.3391 1.34036 14.0966 4.09792 14.0966 7.5C14.0966 10.9021 11.3391 13.6596 7.93698 13.6596C4.53491 13.6596 1.77734 10.9021 1.77734 7.5C1.77734 4.09792 4.53491 1.34036 7.93698 1.34036Z" fill="#111214"/>
+<path d="M7.93717 6.70886L9.40826 5.23776L9.80383 4.84128L10.5959 5.63334L10.1994 6.02891L8.72831 7.5L10.1994 8.9711L10.5959 9.36667L9.80383 10.1587L9.40826 9.76224L7.93717 8.29115L6.46607 9.76224L6.0705 10.1587L5.27844 9.36667L5.67493 8.9711L7.14602 7.5L5.67493 6.02891L5.27844 5.63334L6.0705 4.84128L6.46607 5.23776L7.93717 6.70886Z" fill="white"/>
+</g>
+<defs>
+<clipPath id="clip0_5993_243">
+<path d="M0.437012 7.5C0.437012 3.35786 3.79488 0 7.93701 0C12.0791 0 15.437 3.35786 15.437 7.5C15.437 11.6421 12.0791 15 7.93701 15C3.79488 15 0.437012 11.6421 0.437012 7.5Z" fill="white"/>
+</clipPath>
+</defs>
+</svg>`;
+              const cancelLight = `<svg width="16" height="15" viewBox="0 0 16 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_5993_279)">
+<path d="M0.437012 7.5C0.437012 3.35786 3.79488 0 7.93701 0C12.0791 0 15.437 3.35786 15.437 7.5C15.437 11.6421 12.0791 15 7.93701 15C3.79488 15 0.437012 11.6421 0.437012 7.5Z" fill="#2A2D31"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M7.93698 1.34036C11.3391 1.34036 14.0966 4.09792 14.0966 7.5C14.0966 10.9021 11.3391 13.6596 7.93698 13.6596C4.53491 13.6596 1.77734 10.9021 1.77734 7.5C1.77734 4.09792 4.53491 1.34036 7.93698 1.34036Z" fill="white"/>
+<path d="M7.93717 6.70886L9.40826 5.23776L9.80383 4.84128L10.5959 5.63334L10.1994 6.02891L8.72831 7.5L10.1994 8.9711L10.5959 9.36667L9.80383 10.1587L9.40826 9.76224L7.93717 8.29115L6.46607 9.76224L6.0705 10.1587L5.27844 9.36667L5.67493 8.9711L7.14602 7.5L5.67493 6.02891L5.27844 5.63334L6.0705 4.84128L6.46607 5.23776L7.93717 6.70886Z" fill="black"/>
+</g>
+<defs>
+<clipPath id="clip0_5993_279">
+<path d="M0.437012 7.5C0.437012 3.35786 3.79488 0 7.93701 0C12.0791 0 15.437 3.35786 15.437 7.5C15.437 11.6421 12.0791 15 7.93701 15C3.79488 15 0.437012 11.6421 0.437012 7.5Z" fill="white"/>
+</clipPath>
+</defs>
+</svg>`;
+              const externalLinkIcon = `<svg width="15" height="14" viewBox="0 0 15 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M5.68693 2.33333H2.77026V11.6667H12.1036V8.75M8.6036 2.33333H12.1036V5.83333M6.8536 7.58333L11.5203 2.91666"
+        stroke="currentColor" stroke-width="1.05" stroke-linecap="square"/>
+</svg>`;
+
+              
+// 主题选择函数
+function getLuminance(r, g, b) {
+  return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+function parseColor(color) {
+  const rgbaMatch = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/);
+  if (rgbaMatch) {
+    return [parseInt(rgbaMatch[1]), parseInt(rgbaMatch[2]), parseInt(rgbaMatch[3])];
+  }
+
+  const hexMatch = color.match(/^#([0-9a-f]{6})$/i);
+  if (hexMatch) {
+    const hex = hexMatch[1];
+    return [
+      parseInt(hex.substr(0, 2), 16),
+      parseInt(hex.substr(2, 2), 16),
+      parseInt(hex.substr(4, 2), 16)
+    ];
+  }
+
+  const hexShortMatch = color.match(/^#([0-9a-f]{3})$/i);
+  if (hexShortMatch) {
+    const hex = hexShortMatch[1];
+    return [
+      parseInt(hex[0] + hex[0], 16),
+      parseInt(hex[1] + hex[1], 16),
+      parseInt(hex[2] + hex[2], 16)
+    ];
+  }
+
+  return null;
+}
+
+function detectBackgroundColor(element) {
+  let targetElement;
+
+  if (typeof element === 'string') {
+    const found = document.querySelector(element);
+    if (!found) return 'rgb(255, 255, 255)';
+    targetElement = found;
+  } else if (element) {
+    targetElement = element;
+  } else {
+    targetElement = document.body;
+  }
+
+  let currentElement = targetElement;
+
+  while (currentElement && currentElement !== document.documentElement) {
+    const computedStyle = window.getComputedStyle(currentElement);
+    const backgroundColor = computedStyle.backgroundColor;
+
+    if (backgroundColor && backgroundColor !== 'rgba(0, 0, 0, 0)' && backgroundColor !== 'transparent') {
+      return backgroundColor;
+    }
+
+    currentElement = currentElement.parentElement;
+  }
+
+  const bodyStyle = window.getComputedStyle(document.body);
+  const bodyBackground = bodyStyle.backgroundColor;
+  if (bodyBackground && bodyBackground !== 'rgba(0, 0, 0, 0)' && bodyBackground !== 'transparent') {
+    return bodyBackground;
+  }
+
+  const htmlStyle = window.getComputedStyle(document.documentElement);
+  const htmlBackground = htmlStyle.backgroundColor;
+  if (htmlBackground && htmlBackground !== 'rgba(0, 0, 0, 0)' && htmlBackground !== 'transparent') {
+    return htmlBackground;
+  }
+
+  return 'rgb(255, 255, 255)';
+}
+
+function autoSelectTheme(container) {
+  const backgroundColor = detectBackgroundColor(container);
+  const rgb = parseColor(backgroundColor);
+
+  if (!rgb) {
+    return 'dark';
+  }
+
+  const [r, g, b] = rgb;
+  const luminance = getLuminance(r, g, b);
+  const selectedTheme = luminance > 128 ? 'dark' : 'light';
+
+  return selectedTheme;
+}
+
+
+              // 注入样式
+              const style = document.createElement('style');
+              style.id = 'yixz-badge-plugin-styles';
+              style.textContent = css;
+              document.head.appendChild(style);
+
+              // 创建 Badge 函数
+              function createBadge() {
+                // 移除已存在的 badge
+                const existingBadge = document.getElementById('yixz-badge-plugin');
+                if (existingBadge) {
+                  existingBadge.remove();
+                }
+
+                // 确定主题
+                let variant = 'dark';
+                if (true) {
+                  variant = autoSelectTheme('#app');
+                }
+
+                const isDarkBackground = variant === 'dark';
+                const cancelIcon = isDarkBackground ? cancelLight : cancelDark;
+
+                const badge = document.createElement('div');
+                badge.id = 'yixz-badge-plugin';
+                badge.className = `yixz-badge yixz-badge--${variant} yixz-badge--bottom-right`;
+                badge.innerHTML = `
+                  <div class="yixz-badge-content">
+                    <div class="yixz-badge-logo">${yixzLogo}</div>
+                    <span class="yixz-badge-text">YiXZ.me</span>
+                    <div class="yixz-badge-share">${externalLinkIcon}</div>
+                  </div>
+                  <div class="yixz-badge-cancel">${cancelIcon}</div>
+                `;
+
+                // 添加点击事件
+                
+                badge.style.cursor = 'pointer';
+                badge.addEventListener('click', (e) => {
+                  if (e.target.closest('.yixz-badge-cancel')) return;
+                  window.open('https://yixz.me', '_blank');
+                });
+                
+
+                // 添加取消按钮事件
+                const cancelButton = badge.querySelector('.yixz-badge-cancel');
+                if (cancelButton) {
+                  cancelButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    badge.remove();
+                  });
+                }
+
+                document.body.appendChild(badge);
+                return badge;
+              }
+
+              // 初始创建 badge
+              function initBadge() {
+                requestAnimationFrame(() => {
+                  const targetElement = document.querySelector('#app');
+                  if (targetElement) {
+                    createBadge();
+                  } else {
+                    setTimeout(() => {
+                      createBadge();
+                    }, 500);
+                  }
+                });
+              }
+
+              if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initBadge);
+              } else {
+                initBadge();
+              }
+
+              window.YixzBadgePlugin = {
+                destroy: () => {
+                  const badge = document.getElementById('yixz-badge-plugin');
+                  if (badge) badge.remove();
+                  style.remove();
+                  delete window.YixzBadgePlugin;
+                },
+                recreate: createBadge
+              };
+            })();
+          </script>
+        
+</body>
+</html>
