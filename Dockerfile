@@ -10,19 +10,21 @@ WORKDIR /app
 # 设置环境变量
 ENV NODE_ENV=production \
     PORT=3001 \
-    HOST=0.0.0.0
+    HOST=0.0.0.0 \
+    npm_config_registry=https://registry.npmmirror.com
 
 # 复制 package.json 和锁文件
-COPY package.json pnpm-lock.yaml package-lock.json ./
+COPY package*.json pnpm-lock.yaml* ./
 
 # 安装 pnpm
 RUN npm install -g pnpm
 
+
 # 安装所有依赖（包括 devDependencies，因为需要 tsx）
 RUN if [ -f pnpm-lock.yaml ]; then \
-      pnpm install --frozen-lockfile; \
+      pnpm install --frozen-lockfile --prod=false; \
     else \
-      npm install; \
+      npm install --include=dev; \
     fi
 
 # 复制源代码
