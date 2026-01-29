@@ -13,8 +13,7 @@ const emit = defineEmits(['close', 'save']);
 const form = ref({
   name: '',
   accessAddress: '',
-  autoReload: false,
-  logLevel: 'INFO' as 'INFO' | 'WARN' | 'ERROR' | 'DEBUG'
+  autoReload: false
 });
 
 const errors = ref({
@@ -28,15 +27,13 @@ watch(() => props.instance, (newVal) => {
     form.value = {
       name: newVal.name,
       accessAddress: newVal.accessAddress,
-      autoReload: false, // TODO: Add to Instance type
-      logLevel: 'INFO' // TODO: Add to Instance type
+      autoReload: false
     };
   } else {
     form.value = {
       name: '',
       accessAddress: '',
-      autoReload: false,
-      logLevel: 'INFO'
+      autoReload: false
     };
   }
   errors.value = { name: '', accessAddress: '' };
@@ -101,31 +98,16 @@ const handleSave = () => {
         <p class="mt-1 text-xs text-gray-500">必须是 wss:// 协议且包含 token 参数</p>
       </div>
 
-      <div class="flex items-center justify-between">
-        <div class="flex items-center">
-          <input
-            v-model="form.autoReload"
-            id="auto-reload"
-            type="checkbox"
-            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          />
-          <label for="auto-reload" class="ml-2 block text-sm text-gray-900">
-            自动重载
-          </label>
-        </div>
-
-        <div class="flex items-center">
-          <label class="block text-sm font-medium text-gray-700 mr-2">日志级别</label>
-          <select
-            v-model="form.logLevel"
-            class="block w-24 pl-2 pr-8 py-1 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md border"
-          >
-            <option value="DEBUG">DEBUG</option>
-            <option value="INFO">INFO</option>
-            <option value="WARN">WARN</option>
-            <option value="ERROR">ERROR</option>
-          </select>
-        </div>
+      <div class="flex items-center">
+        <input
+          v-model="form.autoReload"
+          id="auto-reload"
+          type="checkbox"
+          class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+        />
+        <label for="auto-reload" class="ml-2 block text-sm text-gray-900">
+          自动重载
+        </label>
       </div>
     </div>
 

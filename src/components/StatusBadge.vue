@@ -8,10 +8,12 @@ const props = defineProps<{
 
 const config = computed(() => {
   const s = props.status.toLowerCase();
-  
-  if (props.type === 'node') {
+
+  // Node status (removed type check to match all statuses)
+  if (['connected', 'connecting', 'disconnected', 'error'].includes(s)) {
     switch (s) {
       case 'connected': return { color: 'bg-green-100 text-green-700', text: '已连接' };
+      case 'connecting': return { color: 'bg-yellow-100 text-yellow-700', text: '连接中' };
       case 'disconnected': return { color: 'bg-gray-100 text-gray-700', text: '未连接' };
       case 'error': return { color: 'bg-red-100 text-red-700', text: '异常' };
       default: return { color: 'bg-gray-100 text-gray-700', text: s };

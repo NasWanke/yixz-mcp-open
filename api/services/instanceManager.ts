@@ -1,6 +1,6 @@
 import { instanceStore } from '../models/instanceStore';
 import { McpRouterServer } from '../mcp/core/McpRouterServer';
-import { formatLog, LogLevel } from '../mcp/utils/console';
+import { formatLog, LogLevel, LogCategory } from '../mcp/utils/console';
 
 export class InstanceManager {
   private activeServers: Map<string, McpRouterServer> = new Map();
@@ -63,10 +63,11 @@ export class InstanceManager {
     // 启动本地 stdio 服务
     await routerServer.start();
 
-    // 如果配置了 WebSocket 接入地址 (wss://)，则尝试建立连接
+    // 如果配置了 WebSocket 接入地址 (wss://)，则建立连接用于节点信息上报
+    // 注意：accessAddress 是用于将此实例的节点信息上报到远程服务
     if (config.accessAddress && config.accessAddress.startsWith('wss://')) {
         routerServer.connectToRemote(config.accessAddress).catch(err => {
-            console.error('Failed to initiate remote connection:', err);
+            formatLog(LogLevel.WARN, `Failed to connect to remote ${config.accessAddress}: ${err.message}`, LogCategory.CONNECTION);
         });
     }
 
@@ -87,6 +88,43 @@ export class InstanceManager {
   async restartInstance(id: string) {
     await this.stopInstance(id);
     await this.startInstance(id);
+  }
+
+  /**
+   * 更新实例节点配置并通过 WebSocket 通知远程服务器
+   * 适用于节点配置变更时不需要重启整个实例的场景
+   */
+  async updateNodes(id: string, nodes: any[]): Promise<void> {
+    const server = this.activeServers.get(id);
+    if (!server) {
+      formatLog(LogLevel.WARN, `Instance ${id} is not running, cannot update nodes`, LogCategory.CONNECTION);
+      return;
+    }
+
+    // 注意：连接状态现在由 composer 内部的 connectionStatus Map 管理
+    // 前端通过轮询会自动获取到最新的状态
+
+    try {
+      // 转换 nodes 为 mcpServers 配置，使用与 startInstance 相同的命名逻辑
+      const mcpServers: Record<string, any> = {};
+      nodes.forEach(node => {
+        const nodeName = this.deriveNameFromNode(node);
+        mcpServers[nodeName] = {
+          url: node.type === 'sse' ? node.url : undefined,
+          command: node.type === 'stdio' ? node.command : undefined,
+          args: node.type === 'stdio' ? node.args : undefined,
+          env: node.type === 'stdio' ? node.env : undefined
+        };
+      });
+
+      // 更新服务器配置并通知远程连接节点更新
+      await server.updateNodesConfig(nodes, mcpServers);
+
+      formatLog(LogLevel.INFO, `Nodes configuration updated successfully for instance ${id}`, LogCategory.CONNECTION);
+    } catch (error) {
+      formatLog(LogLevel.ERROR, `Failed to update nodes configuration for instance ${id}: ${(error as Error).message}`, LogCategory.CONNECTION);
+      throw error;
+    }
   }
 
   getServer(id: string): McpRouterServer | undefined {
@@ -110,7 +148,8 @@ export class InstanceManager {
   }
 
   // 辅助方法：计算节点名称
-  private deriveNameFromNode(node: any) {
+  // 公开方法，供路由使用
+  deriveNameFromNode(node: any) {
     const preferredName = node.name && String(node.name).trim();
     if (preferredName) return preferredName;
 

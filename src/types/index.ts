@@ -11,7 +11,7 @@ export interface MCPNode {
   toolsCount: number;
   resourcesCount: number;
   promptsCount: number;
-  status: 'connected' | 'disconnected' | 'error';
+  status: 'connected' | 'connecting' | 'disconnected' | 'error';
   lastHeartbeat?: string;
 }
 

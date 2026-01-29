@@ -76,8 +76,11 @@ export const apiClient = {
     return res.json();
   },
 
-  async getInstanceLogs(id: string): Promise<any[]> {
-    const res = await fetch(`${API_BASE}/instances/${id}/logs`);
+  async getInstanceLogs(id: string, level?: string): Promise<any[]> {
+    const url = level
+      ? `${API_BASE}/instances/${id}/logs?level=${level}`
+      : `${API_BASE}/instances/${id}/logs`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error('Failed to fetch instance logs');
     return res.json();
   },

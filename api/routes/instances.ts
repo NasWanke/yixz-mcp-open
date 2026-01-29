@@ -44,36 +44,48 @@ router.get('/:id/nodes', async (req, res) => {
   }
 
   try {
+    // 获取 composer 中的所有客户端状态
+    const composer = server.getActiveComposer();
+    const clientList = composer.listTargetClients();
+
+    // 创建客户端名称到状态的映射
+    const clientStatusMap = new Map<string, any>();
+    for (const client of clientList) {
+      clientStatusMap.set(client.name, client);
+    }
+
     // 映射配置节点到实时状态
     const nodes = await Promise.all(instance.nodes.map(async (node) => {
-      // 检查运行状态
-      const activeClient = await instanceManager.getClientForNodeAsync(id, node);
+      const nodeName = instanceManager.deriveNameFromNode(node);
+      const clientStatus = clientStatusMap.get(nodeName);
 
-      if (activeClient) {
+      if (clientStatus) {
+        // 使用 composer 返回的实际状态
         return {
           id: node.id,
           name: (node as any).name,
           type: node.type,
           url: node.url,
           command: node.command,
-          args: node.args, // 补全 args
-          env: node.env,   // 补全 env
-          status: 'connected', // activeClients 中存在的即为已连接
-          toolsCount: (activeClient as any).toolsCount || 0,
+          args: node.args,
+          env: node.env,
+          status: clientStatus.status, // 使用 composer 的实际状态: 'connecting', 'connected', 'error'
+          toolsCount: clientStatus.toolsCount || 0,
           resourcesCount: 0,
           promptsCount: 0,
           lastHeartbeat: new Date().toISOString()
         };
       } else {
-         return {
+        // 节点不在 composer 中，说明未连接或配置有问题
+        return {
           id: node.id,
           name: (node as any).name,
           type: node.type,
           url: node.url,
           command: node.command,
-          args: node.args, // 补全 args
-          env: node.env,   // 补全 env
-          status: 'error', // 运行时未找到，可能是连接失败
+          args: node.args,
+          env: node.env,
+          status: 'error',
           toolsCount: 0,
           resourcesCount: 0,
           promptsCount: 0,
@@ -81,7 +93,7 @@ router.get('/:id/nodes', async (req, res) => {
         };
       }
     }));
-    
+
     res.json(nodes);
   } catch (error) {
     console.error('Failed to get nodes:', error);
@@ -92,7 +104,8 @@ router.get('/:id/nodes', async (req, res) => {
 // Get instance logs
 router.get('/:id/logs', async (req, res) => {
   const { id } = req.params;
-  const logs = logStore.getLogs(id);
+  const { level } = req.query;
+  const logs = logStore.getLogs(id, level as any);
   res.json(logs);
 });
 
@@ -152,9 +165,23 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
   const instance = await instanceStore.update(req.params.id, req.body);
   if (!instance) return res.status(404).json({ error: 'Instance not found' });
-  
-  // 如果正在运行，且配置变更影响了运行时（如节点变更），可能需要重启
-  // 目前简单处理：只更新配置，不自动重启
+
+  // 如果节点配置发生变化且实例正在运行，通过 WebSocket 通知远程服务器节点更新
+  const isNodesChanged = req.body.nodes !== undefined;
+  const wasRunning = instance.status === 'running';
+
+  if (isNodesChanged && wasRunning) {
+    // 节点变化时通知远程服务器（通过 accessAddress WebSocket 连接）
+    // 不要 await，让它在后台执行，但需要等待一小段时间让状态更新开始
+    instanceManager.updateNodes(req.params.id, instance.nodes).catch(error => {
+      console.error('Failed to notify nodes update:', error);
+      // 即使通知失败，配置也已更新
+    });
+
+    // 等待一小段时间让 updateNodes 开始执行并标记节点状态
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
   res.json(instance);
 });
 

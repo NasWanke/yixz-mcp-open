@@ -27,6 +27,22 @@ const errors = ref({
 const jsonConfig = ref('');
 const jsonError = ref('');
 
+// 重置表单到默认状态
+const resetForm = () => {
+  form.value = {
+    name: '',
+    type: 'sse',
+    url: '',
+    command: '',
+    args: '',
+    env: ''
+  };
+  errors.value = { url: '', command: '' };
+  jsonConfig.value = '';
+  jsonError.value = '';
+};
+
+// 监听节点变化（编辑模式）
 watch(() => props.node, (newVal) => {
   if (newVal) {
     form.value = {
@@ -37,20 +53,15 @@ watch(() => props.node, (newVal) => {
       args: Array.isArray(newVal.args) ? newVal.args.join(' ') : (newVal.args || ''),
       env: Object.entries(newVal.env || {}).map(([k, v]) => `${k}=${v}`).join('\n')
     };
-  } else {
-    form.value = {
-      name: '',
-      type: 'sse',
-      url: '',
-      command: '',
-      args: '',
-      env: ''
-    };
   }
-  errors.value = { url: '', command: '' };
-  jsonConfig.value = '';
-  jsonError.value = '';
 }, { immediate: true });
+
+// 监听弹窗显示状态，每次打开时重置表单（仅用于添加新节点）
+watch(() => props.show, (isShowing) => {
+  if (isShowing && !props.node) {
+    resetForm();
+  }
+});
 
 const handleJsonPaste = () => {
   try {
@@ -77,6 +88,9 @@ const handleJsonPaste = () => {
     // 默认取第一个 server 配置
     const serverName = serverNames[0];
     const serverConfig = mcpServers[serverName];
+
+    // 自动填充显示名称（使用 mcpServers 的键名）
+    form.value.name = serverName;
 
     // 自动识别类型
     if (serverConfig.url) {
@@ -114,8 +128,8 @@ const handleJsonPaste = () => {
     }
 
     jsonError.value = '';
-    // 清空 JSON 输入框，避免误解
-    // jsonConfig.value = ''; 
+    // 清空 JSON 输入框
+    jsonConfig.value = '';
     alert(`已成功导入节点配置: ${serverName}`);
 
   } catch (e) {

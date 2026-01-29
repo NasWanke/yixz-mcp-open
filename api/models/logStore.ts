@@ -33,8 +33,12 @@ class LogStore {
     }
   }
 
-  getLogs(instanceId: string): LogEntry[] {
-    return this.logs.get(instanceId) || [];
+  getLogs(instanceId: string, level?: LogLevel): LogEntry[] {
+    const logs = this.logs.get(instanceId) || [];
+    if (!level) {
+      return logs;
+    }
+    return logs.filter(log => log.level === level);
   }
 
   clearLogs(instanceId: string) {

@@ -26,12 +26,20 @@ const loading = ref(true);
 const loadInstance = async () => {
   try {
     instance.value = await apiClient.getInstance(instanceId);
-    
+
     // 如果实例在运行，加载实时节点状态
     if (instance.value && instance.value.status === 'running') {
       try {
         const nodes = await apiClient.getInstanceNodes(instanceId);
         instance.value.nodes = nodes;
+
+        // 检查是否有节点正在连接中
+        const hasConnecting = nodes.some((n: any) => n.status === 'connecting');
+        if (hasConnecting && activeTab.value === 'nodes') {
+          startPolling();
+        } else if (!hasConnecting) {
+          stopPolling();
+        }
       } catch (e) {
         console.warn('Failed to load real-time nodes status', e);
       }
@@ -44,12 +52,47 @@ const loadInstance = async () => {
   }
 };
 
+// 节点状态轮询
+let pollingInterval: number | null = null;
+
+const startPolling = () => {
+  if (pollingInterval) return; // 已经在轮询
+
+  // 每2秒轮询一次节点状态
+  pollingInterval = window.setInterval(async () => {
+    if (instance.value?.status === 'running' && activeTab.value === 'nodes') {
+      try {
+        const nodes = await apiClient.getInstanceNodes(instanceId);
+        instance.value.nodes = nodes;
+
+        // 如果没有节点在连接中了，停止轮询
+        const hasConnecting = nodes.some((n: any) => n.status === 'connecting');
+        if (!hasConnecting) {
+          stopPolling();
+        }
+      } catch (e) {
+        console.error('Failed to poll nodes status:', e);
+      }
+    } else {
+      stopPolling();
+    }
+  }, 2000);
+};
+
+const stopPolling = () => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+};
+
 const logs = ref<any[]>([]);
 const tools = ref<any[]>([]);
+const logLevelFilter = ref<string>('');
 
-const loadLogs = async () => {
+const loadLogs = async (level?: string) => {
   try {
-    logs.value = await apiClient.getInstanceLogs(instanceId);
+    logs.value = await apiClient.getInstanceLogs(instanceId, level);
   } catch (error) {
     console.error('Failed to load logs:', error);
   }
@@ -64,11 +107,13 @@ const loadTools = async () => {
 };
 
 // Watch tab change to load data
-import { watch } from 'vue';
+import { watch, onUnmounted } from 'vue';
 watch(activeTab, (newTab) => {
   if (newTab === 'logs') {
-    loadLogs();
-  } else if (newTab === 'tools') { // 假设有个 tools tab，虽然模板里还没写
+    stopPolling(); // 切换标签时停止轮询
+    loadLogs(logLevelFilter.value);
+  } else if (newTab === 'tools') {
+    stopPolling(); // 切换标签时停止轮询
     loadTools();
   } else if (newTab === 'nodes') {
     loadInstance();
@@ -77,6 +122,11 @@ watch(activeTab, (newTab) => {
 
 onMounted(() => {
   loadInstance();
+});
+
+// 组件卸载时清理轮询
+onUnmounted(() => {
+  stopPolling();
 });
 
 const actionLoading = ref<Record<string, boolean>>({});
@@ -195,6 +245,12 @@ const handleConfirmDeleteNode = async () => {
   }
 };
 
+const handleLogLevelChange = async () => {
+  if (activeTab.value === 'logs') {
+    await loadLogs(logLevelFilter.value);
+  }
+};
+
 const handleSaveNode = async (data: any) => {
   if (!instance.value) return;
 
@@ -242,8 +298,12 @@ const handleSaveNode = async (data: any) => {
 
     await apiClient.updateInstance(instanceId, {
       nodes: updatedNodes
+      // 注意：只发送 nodes 字段，后端会使用部分更新逻辑
     });
     showNodeModal.value = false;
+
+    // 等待一小段时间让后台开始处理节点连接，然后刷新状态
+    await new Promise(resolve => setTimeout(resolve, 200));
     await loadInstance();
   } catch (error) {
     console.error('Failed to save node:', error);
@@ -440,7 +500,25 @@ const handleSaveNode = async (data: any) => {
       </div>
 
       <!-- Logs Tab -->
-      <div v-else-if="activeTab === 'logs'" class="bg-gray-900 rounded-lg p-4 font-mono text-sm text-gray-300 h-96 overflow-y-auto">
+      <div v-else-if="activeTab === 'logs'">
+        <div class="mb-3 flex items-center gap-3">
+          <label class="text-sm text-gray-600">日志级别:</label>
+          <select
+            v-model="logLevelFilter"
+            @change="handleLogLevelChange"
+            class="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">全部</option>
+            <option value="TRACE">TRACE</option>
+            <option value="DEBUG">DEBUG</option>
+            <option value="INFO">INFO</option>
+            <option value="WARN">WARN</option>
+            <option value="ERROR">ERROR</option>
+            <option value="FATAL">FATAL</option>
+            <option value="OUTPUT">OUTPUT</option>
+          </select>
+        </div>
+        <div class="bg-gray-900 rounded-lg p-4 font-mono text-sm text-gray-300 h-96 overflow-y-auto">
         <div v-if="logs.length === 0" class="text-center text-gray-500 py-12">暂无日志</div>
         <div v-for="(log, i) in logs" :key="i" class="mb-1">
           <span class="text-gray-500">[{{ new Date(log.timestamp).toLocaleTimeString() }}]</span>
@@ -452,6 +530,7 @@ const handleSaveNode = async (data: any) => {
           }" class="mx-2">[{{ log.level }}]</span>
           <span class="text-gray-400">[{{ log.category }}]</span>
           <span class="ml-2">{{ log.message }}</span>
+        </div>
         </div>
       </div>
 
