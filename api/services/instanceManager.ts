@@ -57,7 +57,9 @@ export class InstanceManager {
     // TODO: 支持 toolChains, toolsFilter 等高级配置
     await routerServer.importMcpConfig({
         mcpServers,
-        namespace: '.' // 默认命名空间，符合 MCP 规范
+        namespace: config.namespace || '.',
+        toolChains: config.toolChains || [],
+        tools: config.tools || []
     }, null);
 
     // 启动本地 stdio 服务
@@ -118,11 +120,43 @@ export class InstanceManager {
       });
 
       // 更新服务器配置并通知远程连接节点更新
-      await server.updateNodesConfig(nodes, mcpServers);
+      await server.updateNodesConfig(mcpServers);
 
       formatLog(LogLevel.INFO, `Nodes configuration updated successfully for instance ${id}`, LogCategory.CONNECTION);
     } catch (error) {
       formatLog(LogLevel.ERROR, `Failed to update nodes configuration for instance ${id}: ${(error as Error).message}`, LogCategory.CONNECTION);
+      throw error;
+    }
+  }
+
+  async updateInstanceConfig(id: string, instance: any): Promise<void> {
+    const server = this.activeServers.get(id);
+    if (!server) {
+      formatLog(LogLevel.WARN, `Instance ${id} is not running, cannot update config`, LogCategory.CONNECTION);
+      return;
+    }
+
+    try {
+      const mcpServers: Record<string, any> = {};
+      (instance.nodes || []).forEach((node: any) => {
+        const nodeName = this.deriveNameFromNode(node);
+        mcpServers[nodeName] = {
+          url: node.type === 'sse' ? node.url : undefined,
+          command: node.type === 'stdio' ? node.command : undefined,
+          args: node.type === 'stdio' ? node.args : undefined,
+          env: node.type === 'stdio' ? node.env : undefined
+        };
+      });
+
+      await server.updateNodesConfig(mcpServers, {
+        toolChains: instance.toolChains,
+        tools: instance.tools,
+        namespace: instance.namespace
+      });
+
+      formatLog(LogLevel.INFO, `Instance configuration updated successfully for instance ${id}`, LogCategory.CONNECTION);
+    } catch (error) {
+      formatLog(LogLevel.ERROR, `Failed to update instance configuration for instance ${id}: ${(error as Error).message}`, LogCategory.CONNECTION);
       throw error;
     }
   }

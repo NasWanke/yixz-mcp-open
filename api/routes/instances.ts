@@ -75,23 +75,21 @@ router.get('/:id/nodes', async (req, res) => {
           promptsCount: 0,
           lastHeartbeat: new Date().toISOString()
         };
-      } else {
-        // 节点不在 composer 中，说明未连接或配置有问题
-        return {
-          id: node.id,
-          name: (node as any).name,
-          type: node.type,
-          url: node.url,
-          command: node.command,
-          args: node.args,
-          env: node.env,
-          status: 'error',
-          toolsCount: 0,
-          resourcesCount: 0,
-          promptsCount: 0,
-          lastHeartbeat: '-'
-        };
       }
+      return {
+        id: node.id,
+        name: (node as any).name,
+        type: node.type,
+        url: node.url,
+        command: node.command,
+        args: node.args,
+        env: node.env,
+        status: 'connecting',
+        toolsCount: 0,
+        resourcesCount: 0,
+        promptsCount: 0,
+        lastHeartbeat: '-'
+      };
     }));
 
     res.json(nodes);
@@ -168,17 +166,16 @@ router.put('/:id', async (req, res) => {
 
   // 如果节点配置发生变化且实例正在运行，通过 WebSocket 通知远程服务器节点更新
   const isNodesChanged = req.body.nodes !== undefined;
+  const isToolChainsChanged = req.body.toolChains !== undefined;
+  const isToolsChanged = req.body.tools !== undefined;
+  const isNamespaceChanged = req.body.namespace !== undefined;
   const wasRunning = instance.status === 'running';
 
-  if (isNodesChanged && wasRunning) {
-    // 节点变化时通知远程服务器（通过 accessAddress WebSocket 连接）
-    // 不要 await，让它在后台执行，但需要等待一小段时间让状态更新开始
-    instanceManager.updateNodes(req.params.id, instance.nodes).catch(error => {
-      console.error('Failed to notify nodes update:', error);
-      // 即使通知失败，配置也已更新
+  if (wasRunning && (isNodesChanged || isToolChainsChanged || isToolsChanged || isNamespaceChanged)) {
+    instanceManager.updateInstanceConfig(req.params.id, instance).catch(error => {
+      console.error('Failed to notify instance config update:', error);
     });
 
-    // 等待一小段时间让 updateNodes 开始执行并标记节点状态
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 

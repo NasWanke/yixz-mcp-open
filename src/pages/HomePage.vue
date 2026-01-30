@@ -5,10 +5,12 @@ import InstanceCard from '../components/InstanceCard.vue';
 import InstanceModal from '../components/InstanceModal.vue';
 import type { Instance } from '../types';
 import { apiClient } from '../api';
+import packageJson from '../../package.json';
 
 const instances = ref<Instance[]>([]);
 const showCreateModal = ref(false);
 const loading = ref(false);
+const version = packageJson.version;
 
 const loadInstances = async () => {
   loading.value = true;
@@ -53,7 +55,10 @@ const handleSaveInstance = async (data: any) => {
   <div class="p-6 max-w-7xl mx-auto">
     <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">实例管理</h1>
+        <div class="flex items-center gap-2">
+          <h1 class="text-2xl font-bold text-gray-900">实例管理</h1>
+          <span class="inline-flex items-center rounded-full bg-gray-100 text-gray-600 px-2 py-0.5 text-xs font-medium">v{{ version }}</span>
+        </div>
         <p class="text-gray-500 mt-1">管理您所有的 MCP 服务实例与节点状态</p>
       </div>
       <button 

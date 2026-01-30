@@ -73,7 +73,7 @@ export class McpRouterServer {
   }
 
   // 存储远程连接引用
-  private remoteConnections: Array<{ server: McpServer, transport: WebSocketClientTransport }> = [];
+  private remoteConnections: Array<{ server: McpServer, transport: WebSocketClientTransport, composer: McpServerComposer, url: string }> = [];
 
   async connectToRemote(url: string) {
     const connect = async () => {
@@ -114,7 +114,7 @@ export class McpRouterServer {
         
         formatLog(LogLevel.INFO, `Successfully connected to remote WebSocket`, LogCategory.CONNECTION, false, this.instanceId)
         
-        this.remoteConnections.push({ server, transport });
+        this.remoteConnections.push({ server, transport, composer, url });
 
       } catch (error) {
         formatLog(LogLevel.ERROR, `Failed to connect to remote WebSocket: ${(error as Error).message}. Retrying in 5s...`, LogCategory.CONNECTION, false, this.instanceId)
@@ -372,6 +372,65 @@ export class McpRouterServer {
         this.stdioServer,
         this.parsedConfig.configureMcp
       )
+    }
+  }
+
+  async updateNodesConfig(
+    mcpServers: Record<string, any>,
+    options?: {
+      toolChains?: any[]
+      tools?: string[]
+      namespace?: string
+    }
+  ) {
+    const targetServers = this.parseConfig({ mcpServers })
+    const toolChains = options?.toolChains ?? (this.parsedConfig?.toolChains || [])
+    const toolsFilter = options?.tools ?? (this.parsedConfig?.toolsFilter || [])
+    const namespace = options?.namespace ?? (this.parsedConfig?.namespace || NAMESPACE_SEPARATOR)
+    const configureMcp = this.parsedConfig?.configureMcp || null
+
+    this.parsedConfig = {
+      targetServers,
+      toolChains,
+      toolsFilter,
+      namespace,
+      configureMcp
+    }
+
+    const targetNames = new Set(targetServers.map(server => server.name))
+
+    if (
+      this.transportType === 'sse' &&
+      this.defaultSseComposer &&
+      this.defaultSseServer
+    ) {
+      this.defaultSseComposer.pruneTargets(targetNames)
+      await this._applyConfigurationToComposer(
+        this.defaultSseComposer,
+        this.defaultSseServer,
+        configureMcp
+      )
+    }
+
+    if (
+      this.transportType === 'stdio' &&
+      this.stdioComposer &&
+      this.stdioServer
+    ) {
+      this.stdioComposer.pruneTargets(targetNames)
+      await this._applyConfigurationToComposer(
+        this.stdioComposer,
+        this.stdioServer,
+        configureMcp
+      )
+    }
+
+    const currentRemotes = [...this.remoteConnections]
+    this.remoteConnections = []
+    for (const remote of currentRemotes) {
+      remote.transport.onclose = null
+      await remote.transport.close()
+      this.connectToRemote(remote.url)
     }
   }
 

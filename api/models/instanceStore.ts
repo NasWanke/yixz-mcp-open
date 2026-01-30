@@ -19,6 +19,9 @@ export interface InstanceConfig {
   status: InstanceStatus;
   accessAddress?: string; // 生成的访问地址，如 wss://...
   nodes: MCPNodeConfig[];
+  toolChains?: any[];
+  tools?: string[];
+  namespace?: string;
   autoReload?: boolean;
   logLevel?: string;
   createdAt: number;

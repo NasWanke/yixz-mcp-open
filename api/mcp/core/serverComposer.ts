@@ -78,6 +78,12 @@ export class McpServerComposer {
     }
   > = new Map()
   private readonly clientTools: Map<string, Set<string>> = new Map()
+  private readonly connectionStatus: Map<
+    string,
+    'connecting' | 'connected' | 'disconnected' | 'error'
+  > = new Map()
+  private readonly connectionConfigs: Map<string, ConnectionConfig> = new Map()
+  private readonly connectionConfigKeys: Map<string, string> = new Map()
 
   constructor (serverInfo: Implementation, private instanceId?: string) {
     // console.log('serverInfo::: ', serverInfo)
@@ -137,12 +143,44 @@ export class McpServerComposer {
     }
   }
 
+  private getConfigKey (config: ConnectionConfig) {
+    if (config.type === 'sse') {
+      return JSON.stringify({
+        type: 'sse',
+        url: config.url.toString(),
+        params: config.params
+      })
+    }
+    return JSON.stringify({
+      type: 'stdio',
+      params: config.params
+    })
+  }
+
   async add (
     config: ConnectionConfig,
     clientInfo: Implementation,
     skipRegister = false,
     retryCount = 0
   ): Promise<void> {
+    const name = config.name
+    const configKey = this.getConfigKey(config)
+    const existingKey = this.connectionConfigKeys.get(name)
+    const existingStatus = this.connectionStatus.get(name)
+
+    if (existingKey && existingKey === configKey && existingStatus === 'connected') {
+      return
+    }
+
+    if (existingKey && existingKey !== configKey && this.targetClients.has(name)) {
+      await this.disconnect(name)
+      this.clientTools.delete(name)
+    }
+
+    this.connectionConfigs.set(name, config)
+    this.connectionConfigKeys.set(name, configKey)
+    this.connectionStatus.set(name, 'connecting')
+
     const targetClient = new Client(clientInfo) 
 
     // 用来调试的 - 发现mac上的路径，通过参数调用的exe路径有问题（需要用绝对路径）
@@ -161,6 +199,7 @@ export class McpServerComposer {
       })
     } catch (error) {
       if (retryCount >= 2) {
+        this.connectionStatus.set(name, 'error')
         await formatLog(
           LogLevel.ERROR,
           `Connection failed after 2 retries: ${
@@ -206,9 +245,8 @@ export class McpServerComposer {
       this.instanceId
     )
 
-    const name = config.name
-
     this.targetClients.set(name, { clientInfo, config })
+    this.connectionStatus.set(name, 'connected')
 
     if (skipRegister) {
       await formatLog(
@@ -526,13 +564,26 @@ export class McpServerComposer {
   }
 
   listTargetClients () {
-    return Array.from(this.targetClients.entries()).map(([name, data]) => ({
+    return Array.from(this.connectionConfigs.entries()).map(([name, config]) => ({
       name,
-      config: data.config,
-      status: 'connected', // 简化处理，实际上如果在 map 中通常是连接成功的，或者我们可以维护更详细的状态
-      clientInfo: data.clientInfo,
+      config,
+      status: this.connectionStatus.get(name) || 'disconnected',
+      clientInfo: this.targetClients.get(name)?.clientInfo,
       toolsCount: this.clientTools.get(name)?.size || 0
-    }));
+    }))
+  }
+
+  pruneTargets (targetNames: Set<string>) {
+    for (const name of this.connectionConfigs.keys()) {
+      if (targetNames.has(name)) continue
+      this.connectionConfigs.delete(name)
+      this.connectionConfigKeys.delete(name)
+      this.connectionStatus.delete(name)
+      this.clientTools.delete(name)
+      if (this.targetClients.has(name)) {
+        this.targetClients.delete(name)
+      }
+    }
   }
 
   private resolveCommandPath(command: string): string {
@@ -858,6 +909,9 @@ export class McpServerComposer {
     const client = this.targetClients.get(clientName)
     if (client) {
       this.targetClients.delete(clientName)
+    }
+    if (this.connectionConfigs.has(clientName)) {
+      this.connectionStatus.set(clientName, 'disconnected')
     }
   }
 
